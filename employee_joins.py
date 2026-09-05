@@ -50,6 +50,7 @@ departments = [
 
 cursor.executemany("INSERT INTO departments (name, location) VALUES (?, ?)", departments)
 connection.commit()
+connection.commit()
 
 # Add some employees
 employees = [
@@ -112,5 +113,3 @@ print("\nList of all projects with the project's lead employee's name AND their 
 cursor.execute("SELECT projects.title, employees.name, departments.name FROM projects LEFT JOIN employees ON projects.employee_id = employees.id LEFT JOIN departments ON employees.department_id = departments.id")
 for row in cursor.fetchall():
     print(f"Project: {row[0]}, Lead Employee: {row[1]}, Department: {row[2]}")
-
-connection.close()
