@@ -49,6 +49,7 @@ departments = [
 ]
 
 cursor.executemany("INSERT INTO departments (name, location) VALUES (?, ?)", departments)
+connection.commit()
 
 # Add some employees
 employees = [
@@ -61,6 +62,7 @@ employees = [
     ("Trick", 1, 80000.00)    # Human Resources
 ]
 cursor.executemany("INSERT INTO employees (name, department_id, salary) VALUES (?, ?, ?)", employees)
+connection.commit()
 
 # Add some projects
 projects = [
@@ -71,6 +73,7 @@ projects = [
     ("Project E", 5),  # Mark
 ]
 cursor.executemany("INSERT INTO projects (title, employee_id) VALUES (?, ?)", projects)
+connection.commit() 
 
 # QUERIES BELOW!
 
@@ -109,3 +112,5 @@ print("\nList of all projects with the project's lead employee's name AND their 
 cursor.execute("SELECT projects.title, employees.name, departments.name FROM projects LEFT JOIN employees ON projects.employee_id = employees.id LEFT JOIN departments ON employees.department_id = departments.id")
 for row in cursor.fetchall():
     print(f"Project: {row[0]}, Lead Employee: {row[1]}, Department: {row[2]}")
+
+connection.close()
