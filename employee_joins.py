@@ -50,7 +50,6 @@ departments = [
 
 cursor.executemany("INSERT INTO departments (name, location) VALUES (?, ?)", departments)
 connection.commit()
-connection.commit()
 
 # Add some employees
 employees = [
