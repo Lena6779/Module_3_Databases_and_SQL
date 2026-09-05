@@ -67,3 +67,4 @@ print("\n=== Products NOT in 'Accessories' Category AND are in Stock ===")
 cursor.execute("SELECT name, category, price FROM products WHERE category != 'Accessories' AND in_stock = 1 ORDER BY category, price")
 for row in cursor.fetchall():
     print(f" {row[0]}: {row[1]}, ${row[2]:.2f}")
+connection.close()
