@@ -49,6 +49,7 @@ departments = [
 ]
 
 cursor.executemany("INSERT INTO departments (name, location) VALUES (?, ?)", departments)
+connection.commit()
 
 # Add some employees
 employees = [
@@ -61,6 +62,7 @@ employees = [
     ("Trick", 1, 80000.00)    # Human Resources
 ]
 cursor.executemany("INSERT INTO employees (name, department_id, salary) VALUES (?, ?, ?)", employees)
+connection.commit()
 
 # Add some projects
 projects = [
@@ -71,6 +73,7 @@ projects = [
     ("Project E", 5),  # Mark
 ]
 cursor.executemany("INSERT INTO projects (title, employee_id) VALUES (?, ?)", projects)
+connection.commit() 
 
 # QUERIES BELOW!
 
