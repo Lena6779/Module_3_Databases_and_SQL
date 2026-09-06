@@ -136,3 +136,5 @@ cursor.execute("""
 """)
 print("\nCheckouts per month:")
 print(cursor.fetchall())
+
+connection.close()
