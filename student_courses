@@ -1,0 +1,173 @@
+"""
+Exercise: School Enrollment System
+Module 3 | Lesson 8 | ~45 min
+
+Objective:
+  Model a many-to-many relationship between Students and Courses using
+  SQLAlchemy. Understand how an association table links two models and
+  how to traverse the relationship in both directions.
+"""
+
+from sqlalchemy import (
+    create_engine, String, Integer, ForeignKey, Table, Column, select, func
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
+from typing import List, Optional
+
+engine = create_engine("sqlite:///:memory:", echo=False)
+
+
+class Base(DeclarativeBase):
+    pass
+
+# Association Table for many-to-many (student<->course)
+enrollments = Table(
+   "enrollments",
+    Base.metadata,
+    Column("student_id", Integer, ForeignKey("students.id"), primary_key=True),
+    Column("course_id",  Integer, ForeignKey("courses.id"),  primary_key=True),
+    )
+
+# Implement the Department model 
+
+class Department(Base):
+    __tablename__ = "departments"
+       
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+
+    # Relationship
+    courses: Mapped[List["Course"]] = relationship("Course", back_populates="department")
+    
+    def __repr__(self):
+        return f"departments(name='{self.name}')"
+    
+
+# Implement the Teacher model 
+
+class Teacher(Base):
+    __tablename__ = "teachers"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    department_id: Mapped[int] = mapped_column(ForeignKey("departments.id")) 
+
+    # Relationships
+    department: Mapped["Department"] = relationship("Department")
+    courses: Mapped[List["Course"]] = relationship("Course", back_populates="teacher")
+
+# Implement the Course model 
+class Course(Base):
+    __tablename__ = "courses"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title:Mapped[str] = mapped_column(String(50), nullable=False)
+    credits: Mapped[int] = mapped_column(default=3)
+    department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"))
+    teacher_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teachers.id"), nullable=True)
+
+    # Relationships
+    department: Mapped["Department"] = relationship("Department", back_populates="courses")
+    teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="courses")
+    students: Mapped[List["Student"]] = relationship(
+        "Student", secondary=enrollments, back_populates="courses"
+    )
+
+# Implement the Student model
+class Student(Base):
+    __tablename__ = "students"
+    id: Mapped[int] = mapped_column(primary_key=True) 
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    email: Mapped[str] = mapped_column(String(50), unique=True)
+    year: Mapped[int]
+
+    # Relationship to students
+    courses: Mapped[List["Course"]] = relationship(
+    "Course", secondary=enrollments, back_populates="students"
+    )
+
+
+# Test block 
+if __name__ == "__main__":
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        # Seed 
+        cs_dept  = Department(name="Computer Science")
+        math_dept = Department(name="Mathematics")
+        session.add_all([cs_dept, math_dept])
+        session.flush()
+
+        prof_kim   = Teacher(name="Prof. Kim",   department_id=cs_dept.id)
+        prof_chen  = Teacher(name="Prof. Chen",  department_id=math_dept.id)
+        session.add_all([prof_kim, prof_chen])
+        session.flush()
+
+        db101  = Course(title="Databases 101",    credits=3, department_id=cs_dept.id,   teacher_id=prof_kim.id)
+        py201  = Course(title="Python Advanced",  credits=3, department_id=cs_dept.id,   teacher_id=prof_kim.id)
+        calc1  = Course(title="Calculus I",       credits=4, department_id=math_dept.id, teacher_id=prof_chen.id)
+        session.add_all([db101, py201, calc1])
+        session.flush()
+
+        alice = Student(name="Alice Chen",   email="alice@uni.edu", year=2)
+        bob   = Student(name="Bob Martinez", email="bob@uni.edu",   year=1)
+        carol = Student(name="Carol Singh",  email="carol@uni.edu", year=3)
+        session.add_all([alice, bob, carol])
+        session.flush()
+
+        # Enroll students in courses
+        alice.courses.append(db101)
+        alice.courses.append(py201)
+        alice.courses.append(calc1)
+        bob.courses.append(db101)
+        bob.courses.append(py201)
+        bob.courses.append(calc1)
+
+        session.commit()
+    
+        # Demo 1: List all courses with their teacher 
+        print("=== Courses and Teachers ===")
+        courses = session.execute(select(Course)).scalars().all()
+        for course in courses:
+            teacher_name = course.teacher.name if course.teacher else "No teacher assigned"
+            print(course.title, "-", teacher_name)
+
+
+        # Demo 2: List a student's enrolled courses 
+        print("=== Alice's enrolled courses ===")
+        alice = session.execute(
+            select(Student).where(Student.email == "alice@uni.edu")
+        ).scalar_one()
+        for course in alice.courses:
+            print(course.title)
+
+        # Demo 3: List all students in a course 
+        print("=== Students in Databases 101 ===")
+        db101 = session.execute(select(Course).where(Course.title == "Databases 101")
+        ).scalar_one()
+        for student in db101.students:
+            print(student.name)
+
+      
+
+        # Demo 4: Count enrollments per course 
+        print("=== Enrollment counts ===")
+        results = session.execute(
+        select(Course.title, func.count(Student.id))
+        .join(Course.students)
+        .group_by(Course.title)
+        ).all()
+        for title, count in results:
+            print(title, "-", count)
+      
+
+        # Demo 5: Find students not enrolled in any course 
+        print("=== Unenrolled students ===")
+        unenrolled = session.execute(
+            select(Student).where(Student.courses.any() == False)
+        ).scalars().all()
+
+        for student in unenrolled:
+            print(student.name)
+
+  
+
+
